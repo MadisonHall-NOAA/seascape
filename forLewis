@@ -1,0 +1,53 @@
+# VAST simple example abundance calculation
+
+# Load package
+library(VAST)
+setwd("~/R_projects/simulation_analysis/results")
+
+# load data set
+# see `?load_example` for list of stocks with example data
+# that are installed automatically with `FishStatsUtils`.
+example = load_example( data_set="GOA_pollock" )
+
+
+# Make settings (turning off bias.correct to save time for example)
+settings = make_settings( n_x=100,
+                          Region=example$Region,
+                          purpose="index2",
+                          strata.limits=example$strata.limits,
+                          bias.correct=FALSE)
+#################################################################################
+
+#read in simulated data
+for (i in 1:11){
+  sim1_Tonly<-read.csv(paste0("sim_survey_trawlable_only_2013_polyspinis", i, ".csv"))
+  #assign year so VAST will run                                                       
+  sim1_Tonly$year<-2013
+  
+  dirs=c(paste0("sim1_Tonly_pop10_",i))
+  for (j in 1:length(dirs)) {
+    if (dir.exists(dirs[j]) == FALSE) {
+      dir.create(dirs[j])
+    }
+  }
+  data<-sim1_Tonly
+  # Run model
+  fit_To_10 = fit_model( settings=settings,
+                         Lat_i=data[,'centroid_y'],
+                         Lon_i=data[,'centroid_x'],
+                         t_i=data[,'year'],
+                         c_i=rep(0,nrow(data)),
+                         b_i=data[,'sim_survey_pop10_2013_perfect_kg'],
+                         a_i=data[,'sim_area_swept_km2'],
+                         v_i= 1,
+                         FieldConfig= c("Omega1"=0, 
+                                        "Omega2"=0, 
+                                        "Epsilon1"=0, 
+                                        "Epsilon2"=0),
+                         Aniso = FALSE,
+                         "optimize_args" =list("lower"=-Inf,"upper"=Inf)
+  )
+  dyn.load(dynlib(paste0(getwd(), "/VAST_v12_0_0")))
+  # Plot results
+  plot( fit_To_10 )
+}
